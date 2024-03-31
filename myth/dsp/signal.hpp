@@ -1,58 +1,70 @@
 #ifndef __Dsp__Signal__HPP
 #define __Dsp__Signal__HPP
 
-#include <vector>
+#include <cassert>
+#include <cstring>
+
+namespace myth
+{
 
 namespace dsp
 {
-	template <
-		typename V,
-		typename _TimeContainer,
-		typename _FreqType=float>
-	class signal
+	template <typename V,typename _TimeContainer>
+	class real_signal
 	{
 	public:
 		using value_type=V;
-		using time_container=_TimeContainer;
-		using frequency_type=_FreqType;
+		using tc_type=_TimeContainer;
+		using duration_type=typename tc_type::duration_type;
 		using size_type=size_t;
 		
 	public:
-		signal(std::vector<value_type>&& rhs,frequency_type sr,value_type default_val=0):
-			value_(std::move(rhs)),default_(default_val)
-		{
-			if(!sr){
-				//	sample rate is not specified
-				return;
-			}
-			time_type delta=1.0/sr;
-			size_type N=value_.size();
-			for(size_type n=0;n<N;n++){
-				time_.push_back(n*delta);
-			}
+		real_signal(value_type * data, size_type size, tc_type tc):size_(size), tc_(tc){
+			if(!size_)
+				//	ToDo: exception strategy
+				assert(0);
+			data_=new value_type[size_];
+			memcpy(data_, data, size_*sizeof(value_type));
 		}
+		
 		//	accessors
-		value_type value(size_type n)noexcept{
-			if(value_.size()<=n)
-				return default_;
-			return value_[n];
+		value_type value(size_type n)const{
+			return data_[n%size_];
 		}
-		//	temporary decision
-		void get_values(size_type off, size_type len, std::vector<value_type> &values){
-			values.clear();
-			if(value_.size()<off+len)
-				return;
+		
+		//	return range of values
+		template <typename _Iter>
+		size_type get_values(size_type off, size_type len, _Iter it){
+			if(size_<=off)
+				return 0;
+			if(size_<off+len)
+				//	reduce requested length
+				len=size_-off;
 			for(size_type i=0;i<len;i++){
-				values.push_back(value_[off+i]);
+				*it++=data_[off+i];
 			}
+		}
+		
+		typename duration_type::rep time(size_type n)const{
+			return tc_[n];
+		}
+		
+		value_type operator[](size_type n)const{
+			return this->value(n);
+		}
+		
+		size_type size()const{
+			return size_;
 		}
 		
 	protected:
-		std::vector<value_type> value_;
-		time_container tc_;
-		
-		value_type default_;
+		size_type size_;
+		value_type * data_;
+		//	contains time of signal samples
+		tc_type tc_;
 	};
+}
+
 }
 
 #endif//__Dsp__Signal__HPP

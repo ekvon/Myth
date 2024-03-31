@@ -1,49 +1,98 @@
 #ifndef __Myth__Dsp__Time_Container__Hpp
 #define __Myth__Dsp__Time_Container__Hpp
 
+#include <chrono>
+
+using namespace std;
+using namespace std::chrono;
+
+namespace myth
+{
+
 namespace dsp
 {
-	template <bool v>
 	struct uniform_time_tag
-	{
-		enum {value=v};
-	};
+	{};
+	struct random_time_tag
+	{};
 	
-	template <typename V=float>
-	class tc_samplerate
+	//	Template parameters:
+	//	@_Duration - impl. of std::chrono::duration
+	template <typename _DurationBase, typename _Duration, typename _TimeTag> class time_container;
+	
+	template <typename _SampleRate, typename _Duration>
+	class time_container<_SampleRate, _Duration, uniform_time_tag>
 	{
 		public:
-			using value_type=V;
+			using sr_type=_SampleRate;
+			using duration_type=_Duration;
+			using tick_type=typename sr_type::rep;
+			using period_type=typename sr_type::period;
 			using size_type=size_t;
-			using uniform_type=uniform_time_tag<true>;
 			
 		public:
-			tc_samplerate(value_type sr, value_type start, size_type size):sr_(sr), start_(start), size_(size){
+			time_container():start_(0), delta_(0), size_(0){
 			}
 			
-			value_type start_time()const{
+			time_container(tick_type start, tick_type delta, size_type size):delta_(delta), start_(start), size_(size){
+			}
+			
+			//	tick-interface
+			tick_type start_tick()const{
 				return start_;
 			}
 			
-			value_type end_time()const{
-				return start_+(1.0/sr_)*size_;
+			tick_type tick(size_type n)const{
+				n%=size_;
+				return start_+static_cast<tick_type>(delta_*n);
+			}
+			
+			tick_type end_tick()const{
+				return start_+static_cast<tick_type>(delta_*size_);
+			}
+			
+			//	duration interface
+			typename duration_type::rep start_time()const{
+				auto sr_time=sr_type(start_);
+				auto time=duration_cast<duration_type>(sr_time);
+				return time.count();
+			}
+			
+			typename duration_type::rep time(size_type n)const{
+				tick_type t=this->tick(n);
+				auto sr_time=sr_type(t);
+				auto time=duration_cast<duration_type>(sr_time);
+				return time.count();
 			}
 			
 			//	duration of k-th time interval (the same for all intervals)
-			value_type duration(size_type k)const{
-				return 1/sr_;
+			typename duration_type::rep end_time()const{
+				tick_type end_tick=start_+static_cast<tick_type>(delta_*size_);
+				auto sr_time=sr_type(end_tick);
+				auto time=duration_cast<duration_type>(end_tick);
+				return time.count();
 			}
 			
-			//	total number of time samples
+			typename duration_type::rep operator[](size_type n)const{
+				return this->time(n);
+			}
+			
+			//	total number of ticks
 			size_type size()const{
 				return size_;
 			}
 			
+			bool is_inited()const{
+				return size_!=0;
+			}
+			
 		private:
-			value_type sr_;
-			value_type start_;
+			tick_type start_;
+			tick_type delta_;
 			size_type size_;
 	};
+}
+
 }
 
 #endif
