@@ -2,6 +2,7 @@
 #define __Myth__Dsp__Time_Container__Hpp
 
 #include <chrono>
+#include <stdexcept>
 
 using namespace std;
 using namespace std::chrono;
@@ -34,7 +35,7 @@ namespace dsp
 			time_container():start_(0), delta_(0), size_(0){
 			}
 			
-			time_container(tick_type start, tick_type delta, size_type size):delta_(delta), start_(start), size_(size){
+			time_container(size_type size, tick_type start=0, tick_type delta=1):delta_(delta), start_(start), size_(size){
 			}
 			
 			//	tick-interface
@@ -73,8 +74,21 @@ namespace dsp
 				return time.count();
 			}
 			
+			size_type tick_index_by_time(tick_type tick)const{
+				if(tick<start_)
+					throw std::invalid_argument("time value is less than start time\n");
+				tick_type end=this->end_tick();
+				if(end<tick)
+					throw std::invalid_argument("time value is greater than end time\n");
+				return static_cast<size_type>((tick-start_)/delta_);
+			}
+			
 			typename duration_type::rep operator[](size_type n)const{
 				return this->time(n);
+			}
+			
+			size_type operator()(tick_type tick)const{
+				return this->tick_index_by_time(tick);
 			}
 			
 			//	total number of ticks

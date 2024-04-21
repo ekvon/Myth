@@ -16,6 +16,7 @@ namespace dsp
 		using value_type=V;
 		using tc_type=_TimeContainer;
 		using duration_type=typename tc_type::duration_type;
+		using tick_type=typename tc_type::tick_type;
 		using size_type=size_t;
 		
 	public:
@@ -25,6 +26,11 @@ namespace dsp
 				assert(0);
 			data_=new value_type[size_];
 			memcpy(data_, data, size_*sizeof(value_type));
+		}
+		
+		~real_signal(){
+			if(data_!=nullptr)
+				delete[]data_;
 		}
 		
 		//	accessors
@@ -53,8 +59,18 @@ namespace dsp
 			return this->value(n);
 		}
 		
+		size_type operator()(tick_type tick)const{
+			return tc_(tick);
+		}
+		
 		size_type size()const{
 			return size_;
+		}
+		
+		//	WARMING: access to raw data
+		value_type * at(size_type n){
+			n%=size_;
+			return data_+n;
 		}
 		
 	protected:

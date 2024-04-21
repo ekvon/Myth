@@ -90,11 +90,11 @@ namespace dsp
 	};
 	
 	//	channel filter for real type
-	template <typename _DataType, typename _OrderingTag, uint8_t _NumChannels>
-	struct channel_filter_base<_DataType, _OrderingTag, _NumChannels, false>
+	template <typename _InputType, typename _OrderingTag, uint8_t _NumChannels>
+	struct channel_filter_base<_InputType, _OrderingTag, _NumChannels,false>
 	{
 		using char_type=char;
-		using data_type=_DataType;
+		using in_type=_InputType;
 		using ordering_type=_OrderingTag;
 		
 		template <typename _InputIter, typename _OutputIter>
@@ -105,6 +105,7 @@ namespace dsp
 			_InputIter src_end,
 			uint8_t channel){
 			
+			using in_type=_InputType;
 			using out_type=typename std::iterator_traits<_OutputIter>::value_type;
 			//	check _Inputiter::value_type (pointer to raw data)
 			static_assert(std::is_same<
@@ -117,36 +118,36 @@ namespace dsp
 				throw std::logic_error("channel_filter_base::make (FATAL): invalid iterator values\n");
 			
 			//	number of items in input data
-			size_t in_size=(src_end-src_begin)/(sizeof(data_type)*_NumChannels);
+			size_t in_size=(src_end-src_begin)/(sizeof(in_type)*_NumChannels);
 			//	input data must contain integer number of items
-			assert(!((src_end-src_begin)%(sizeof(data_type)*_NumChannels)));
+			assert((src_end-src_begin)%(sizeof(in_type)*_NumChannels)==0);
 			//	test channel number
 			channel%=_NumChannels;
 			
-			//	check number of output items
+			//	check number of output complex items
 			size_t out_size=dst_end-dst_begin;
 			if(out_size<in_size)
 				throw std::logic_error("channel_filter_base::make (FATAL): output range is too short\n");
 
 			//	set input iterator to the first value of specified channel
-			data_type * it=(data_type*)(src_begin)+channel;
-			data_type * end=(data_type*)(src_end);
+			in_type * _p=(in_type*)(src_begin)+channel;
+			in_type * _end=(in_type*)(src_end);
 			//	set output iterator
-			_OutputIter out_it=(dst_begin);
+			out_type * out_it=static_cast<out_type*>(dst_begin);
 
 			if(std::is_same<ordering_type,interleaved_ordering_tag>::value){
 				//	interleaved storage
-				for(;it<end;){
-					*out_it++=(out_type)(*it);
+				for(;_p<_end;){
+					*out_it++=static_cast<out_type>(*_p);
 					//	ignore all other channels
-					it+=_NumChannels;
+					_p+=_NumChannels;
 				}	
-			}
+			}	//	interleaved storage
 			else{
-				//	sequential storage (not realized yet)
+				//	not realized yet
 				return;
 			}
-		}	//	select
+		}	//	make
 	};
 }
 
