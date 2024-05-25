@@ -18,7 +18,8 @@ namespace dsp
 	{};
 	
 	//	Template parameters:
-	//	@_Duration - impl. of std::chrono::duration
+	//	@_DurationBase - duration between two adjacent samples of signal, i.e. sample rate (impl. of std::chrono::duration)
+	//	@_Duration - time that's used in time interface (impl. of std::chrono::duration) 
 	template <typename _DurationBase, typename _Duration, typename _TimeTag> class time_container;
 	
 	template <typename _SampleRate, typename _Duration>
@@ -32,27 +33,24 @@ namespace dsp
 			using size_type=size_t;
 			
 		public:
-			time_container():start_(0), delta_(0), size_(0){
+			time_container(size_type size = 0, tick_type start = 0):start_(start), size_(size){
 			}
 			
-			time_container(size_type size, tick_type start=0, tick_type delta=1):delta_(delta), start_(start), size_(size){
-			}
-			
-			//	tick-interface
+			//	tick-interface (_SampleRate is used as duration type)
 			tick_type start_tick()const{
 				return start_;
 			}
 			
-			tick_type tick(size_type n)const{
+			tick_type tick(tick_type n)const{
 				n%=size_;
-				return start_+static_cast<tick_type>(delta_*n);
+				return start_+n;
 			}
 			
 			tick_type end_tick()const{
-				return start_+static_cast<tick_type>(delta_*size_);
+				return start_+size_;
 			}
 			
-			//	duration interface
+			//	duration (time) interface
 			typename duration_type::rep start_time()const{
 				auto sr_time=sr_type(start_);
 				auto time=duration_cast<duration_type>(sr_time);
@@ -68,19 +66,22 @@ namespace dsp
 			
 			//	duration of k-th time interval (the same for all intervals)
 			typename duration_type::rep end_time()const{
-				tick_type end_tick=start_+static_cast<tick_type>(delta_*size_);
+				tick_type end_tick=start_+size_;
 				auto sr_time=sr_type(end_tick);
-				auto time=duration_cast<duration_type>(end_tick);
+				auto time=duration_cast<duration_type>(sr_time);
 				return time.count();
 			}
 			
-			size_type tick_index_by_time(tick_type tick)const{
-				if(tick<start_)
-					throw std::invalid_argument("time value is less than start time\n");
-				tick_type end=this->end_tick();
-				if(end<tick)
-					throw std::invalid_argument("time value is greater than end time\n");
-				return static_cast<size_type>((tick-start_)/delta_);
+			//	return tick of sample rate duration that corresponds the tick specified for time duration
+			size_type tick_index_by_time(tick_type time_tick) const {
+				if(time_tick < start_time() || end_time() <= time_tick)
+					throw std::invalid_argument("invalid time_tick value\n");
+					
+				duration_type d(time_tick);
+				sr_type sr_time=duration_cast<sr_type>(d);
+				tick_type tick=sr_time.count();
+				assert(start_ <= tick && tick < start_ + size_);
+				return tick;
 			}
 			
 			typename duration_type::rep operator[](size_type n)const{
@@ -91,7 +92,12 @@ namespace dsp
 				return this->tick_index_by_time(tick);
 			}
 			
-			//	total number of ticks
+			//	total number of duration ticks
+			size_type duration_size() const {
+				return this->start_time() - this->end_time();
+			}
+			
+			//	total number of sample rate ticks
 			size_type size()const{
 				return size_;
 			}
@@ -102,8 +108,7 @@ namespace dsp
 			
 		private:
 			tick_type start_;
-			tick_type delta_;
-			size_type size_;
+			tick_type size_;
 	};
 }
 

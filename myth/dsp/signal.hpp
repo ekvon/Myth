@@ -33,12 +33,18 @@ namespace dsp
 				delete[]data_;
 		}
 		
-		//	accessors
+		//	return the value of specified sample
+		//	Params:
+		//	@n - the number of sample
 		value_type value(size_type n)const{
 			return data_[n%size_];
 		}
 		
-		//	return range of values
+		//	return values of samples in specified range
+		//	Params:
+		//	@off - offset from the begining of signal (in samples)
+		//	@len - the length of requested data (in samples)
+		//	@it - output iterator
 		template <typename _Iter>
 		size_type get_values(size_type off, size_type len, _Iter it){
 			if(size_<=off)
@@ -50,7 +56,9 @@ namespace dsp
 				*it++=data_[off+i];
 			}
 		}
-		
+
+		//	return number of ticks of the duration defined in time interface of the 'time_container'
+		//	for the secified sample
 		typename duration_type::rep time(size_type n)const{
 			return tc_[n];
 		}
