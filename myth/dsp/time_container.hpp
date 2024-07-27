@@ -36,6 +36,11 @@ namespace dsp
 			time_container(size_type size = 0, tick_type start = 0):start_(start), size_(size){
 			}
 			
+			//
+			void set_size(size_type size){
+				size_ = size;
+			}
+			
 			//	tick-interface (_SampleRate is used as duration type)
 			tick_type start_tick()const{
 				return start_;
@@ -73,7 +78,7 @@ namespace dsp
 			}
 			
 			//	return tick of sample rate duration that corresponds the tick specified for time duration
-			size_type tick_index_by_time(tick_type time_tick) const {
+			tick_type tick_index_by_time(typename duration_type::rep time_tick) const {
 				if(time_tick < start_time() || end_time() <= time_tick)
 					throw std::invalid_argument("invalid time_tick value\n");
 					
@@ -88,8 +93,8 @@ namespace dsp
 				return this->time(n);
 			}
 			
-			size_type operator()(tick_type tick)const{
-				return this->tick_index_by_time(tick);
+			tick_type operator()(typename duration_type::rep time_tick)const{
+				return this->tick_index_by_time(time_tick);
 			}
 			
 			//	total number of duration ticks

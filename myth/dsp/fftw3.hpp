@@ -19,6 +19,13 @@ namespace dsp
 	struct r2r_transform_tag
 	{};
 	
+	struct basic_if_tag
+	{};
+	struct adv_if_tag
+	{};
+	struct guru_if_tag
+	{};
+	
 	template <typename T, typename _TransformType, uint8_t _Rank, size_t _N> class fftw3;
 	
 	//	C++ wrappers for libfftw3
